@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stanley Finder - Vitality Play</title>
+    <style>
+        :root {
+            --color-starting: #22c55e;
+            --color-valid: #3b82f6;
+            --color-found: #ef4444;
+            --color-empty: #6b7280;
+            --color-bg: #f8fafc;
+            --color-card: #ffffff;
+            --color-border: #e2e8f0;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background: var(--color-bg);
+            color: #1e293b;
+            line-height: 1.5;
+            padding: 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 500px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 0.9rem;
+        }
+
+        .instructions {
+            background: var(--color-card);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-border);
+        }
+
+        .instructions h2 {
+            font-size: 1rem;
+            margin-bottom: 8px;
+        }
+
+        .instructions ol {
+            padding-left: 20px;
+            font-size: 0.85rem;
+            color: #475569;
+        }
+
+        .instructions li {
+            margin-bottom: 4px;
+        }
+
+        .grid-container {
+            background: var(--color-card);
+            padding: 20px;
+            border-radius: 16px;
+            margin-bottom: 20px;
+            border: 1px solid var(--color-border);
+        }
+
+        .stanley-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .tile {
+            aspect-ratio: 1;
+            border: 2px solid var(--color-border);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 700;
+            cursor: pointer;
+            background: white;
+            transition: all 0.15s ease;
+            user-select: none;
+        }
+
+        .tile:hover:not(.disabled) {
+            transform: scale(1.05);
+            border-color: #94a3b8;
+        }
+
+        .tile.starting {
+            background: var(--color-starting);
+            border-color: var(--color-starting);
+            color: white;
+        }
+
+        .tile.valid {
+            --tile-opacity: 1;
+            background: rgba(59, 130, 246, var(--tile-opacity));
+            border-color: var(--color-valid);
+            color: white;
+            animation: pulse 1.5s infinite;
+        }
+
+        .tile.found {
+            background: var(--color-found);
+            border-color: var(--color-found);
+            color: white;
+        }
+
+        .tile.empty {
+            background: var(--color-empty);
+            border-color: var(--color-empty);
+            color: white;
+            opacity: 0.5;
+        }
+
+        .tile.disabled {
+            cursor: not-allowed;
+            opacity: 0.3;
+        }
+
+        @keyframes pulse {
+            0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+            50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+        }
+
+        .info-panel {
+            background: var(--color-card);
+            padding: 16px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            border: 1px solid var(--color-border);
+        }
+
+        .info-panel h3 {
+            font-size: 0.95rem;
+            margin-bottom: 12px;
+            color: #334155;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 0.9rem;
+        }
+
+        .status-label {
+            color: #64748b;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #0f172a;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.15s ease;
+        }
+
+        .btn-reset {
+            background: #f1f5f9;
+            color: #475569;
+        }
+
+        .btn-reset:hover {
+            background: #e2e8f0;
+        }
+
+        /* Modal */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            align-items: center;
+            justify-content: center;
+            z-index: 100;
+        }
+
+        .modal-overlay.active {
+            display: flex;
+        }
+
+        .modal {
+            background: white;
+            padding: 24px;
+            border-radius: 16px;
+            max-width: 300px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .modal h3 {
+            margin-bottom: 16px;
+            font-size: 1.1rem;
+        }
+
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .modal button {
+            padding: 14px;
+            font-size: 1rem;
+        }
+
+        .btn-found {
+            background: var(--color-starting);
+            color: white;
+        }
+
+        .btn-found:hover {
+            background: #16a34a;
+        }
+
+        .btn-not-found {
+            background: var(--color-empty);
+            color: white;
+        }
+
+        .btn-not-found:hover {
+            background: #4b5563;
+        }
+
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.8rem;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .legend-color {
+            width: 16px;
+            height: 16px;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Stanley Finder</h1>
+            <p class="subtitle">Vitality Play Gameboard Assistant</p>
+        </header>
+
+        <section class="instructions">
+            <h2>How to Use</h2>
+            <ol>
+                <li>Click the tile where you found the <strong>Starting Stanley</strong> (green)</li>
+                <li>Click a highlighted tile (blue) to test</li>
+                <li>Report whether you found Stanley or not</li>
+                <li>Tool updates predictions based on your findings</li>
+            </ol>
+        </section>
+
+        <div class="grid-container">
+            <div id="grid-container" class="stanley-grid"></div>
+        </div>
+
+        <div class="info-panel">
+            <h3>Legend</h3>
+            <div class="legend">
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-starting)"></div>
+                    <span>Starting Stanley</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-valid)"></div>
+                    <span>Possible Next</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-found)"></div>
+                    <span>Found Stanley</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: var(--color-empty)"></div>
+                    <span>Empty</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="info-panel">
+            <h3>Status</h3>
+            <div class="status-row">
+                <span class="status-label">Stanleys Found:</span>
+                <span class="status-value" id="found-count">0</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Matching Patterns:</span>
+                <span class="status-value" id="pattern-count">-</span>
+            </div>
+            <div class="status-row">
+                <span class="status-label">Possible Next Tiles:</span>
+                <span class="status-value" id="possible-count">-</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button class="btn-reset" onclick="app.reset()">Reset Board</button>
+        </div>
+    </div>
+
+    <!-- Modal for "Found Stanley?" confirmation -->
+    <div id="modal" class="modal-overlay">
+        <div class="modal">
+            <h3>Did you find Stanley here?</h3>
+            <div class="modal-buttons">
+                <button class="btn-found" onclick="app.confirmFinding(true)">Yes, Found!</button>
+                <button class="btn-not-found" onclick="app.confirmFinding(false)">No, Empty</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // PATTERNS - Transcribed from stanley.pdf
+        // Each pattern is an ordered sequence of tile positions [1-16]
+        // ============================================
+        // | 1 | 2 | 3 | 4 |
+        // | 5 | 6 | 7 | 8 |
+        // | 9 | 10| 11| 12|
+        // | 13| 14| 15| 16|
+        const PATTERNS = [
+            // Format: { id: "pattern-name", sequence: [tile1, tile2, tile3, ...] }
+            { id: "pattern-a", sequence: [1, 2, 13] },  // 4th Stanley unknown
+            { id: "pattern-b", sequence: [2, 3, 4, 9] },
+            { id: "pattern-c", sequence: [3, 8, 12, 16] },
+            { id: "pattern-d1", sequence: [4, 5, 11, 13], hitcount: 74 },
+            { id: "pattern-d2", sequence: [4, 1, 2, 6], hitcount: 93 },
+            { id: "pattern-d3", sequence: [4, 4, 6, 11], hitcount: 2 },
+            { id: "pattern-e", sequence: [5, 8, 15, 16], hitcount: 12 },
+            { id: "pattern-e1", sequence: [5, 1, 6, 11], hitcount: 13 },
+            { id: "pattern-e2", sequence: [5, 1, 9, 13], hitcount: 96 },
+            { id: "pattern-e3", sequence: [5, 6, 14, 16], hitcount: 5 },
+            { id: "pattern-e4", sequence: [5, 1, 6, 8], hitcount: 8 },
+            { id: "pattern-e5", sequence: [5, 1, 12], hitcount: 15 },
+            { id: "pattern-e6", sequence: [5, 12, 13, 14], hitcount: 11 },
+            { id: "pattern-e7", sequence: [5, 6, 15], hitcount: 37 },
+            { id: "pattern-e8", sequence: [5, 2, 8, 9], hitcount: 58 },
+            { id: "pattern-e9", sequence: [5, 1, 7, 13], hitcount: 22 },
+            { id: "pattern-e10", sequence: [5, 12, 13, 14], hitcount: 11 },
+            { id: "pattern-e11", sequence: [5, 8], hitcount: 4 },
+            { id: "pattern-e12", sequence: [5, 1, 6], hitcount: 8 },
+            { id: "pattern-e13", sequence: [5, 1, 14], hitcount: 1 },
+            { id: "pattern-e14", sequence: [5, 1, 9, 15], hitcount: 49 },
+            { id: "pattern-i1", sequence: [9, 4, 5, 14], hitcount: 113 },
+            { id: "pattern-i1", sequence: [9, 3, 4, 5], hitcount: 8 },
+            { id: "pattern-k", sequence: [9, 15] },
+            { id: "pattern-m1", sequence: [13, 1, 2, 11], hitcount: 95 },
+            { id: "pattern-m2", sequence: [13, 1, 11], hitcount: 1 },
+            { id: "pattern-m3", sequence: [13, 1, 2, 11], hitcount: 10 },
+            { id: "pattern-m4", sequence: [13, 1, 7, 11], hitcount: 4 },
+            { id: "pattern-n1", sequence: [14, 2, 6, 8], hitcount: 107 },
+            { id: "pattern-n2", sequence: [14, 1, 5, 12], hitcount: 38 },
+            { id: "pattern-n3", sequence: [14, 10, 11], hitcount: 9 },
+            { id: "pattern-n4", sequence: [14, 3, 11, 13], hitcount: 47 },
+            { id: "pattern-n5", sequence: [14, 3, 8, 9], hitcount: 19 },
+            { id: "pattern-n6", sequence: [14, 5, 6, 10], hitcount: 45 },
+            { id: "pattern-n7", sequence: [14, 6, 12], hitcount: 1 },
+            { id: "pattern-n8", sequence: [14, 8, 12], hitcount: 1 },
+            { id: "pattern-n9", sequence: [14, 2, 5, 12], hitcount: 66 },
+            { id: "pattern-n10", sequence: [14, 2, 5, 15], hitcount: 5 },
+            { id: "pattern-n11", sequence: [14, 5, 12], hitcount: 71 },
+            { id: "pattern-n12", sequence: [14, 7], hitcount: 4 },
+            { id: "pattern-n13", sequence: [14, 1, 8, 10], hitcount: 9 },
+            { id: "pattern-n14", sequence: [14, 10], hitcount: 5 },
+            { id: "pattern-n15", sequence: [14, 1, 7, 10], hitcount: 3 },
+            { id: "pattern-n16", sequence: [14, 5, 6, 9], hitcount: 2 },
+            { id: "pattern-n17", sequence: [14, 12, 15], hitcount: 1 },
+            { id: "pattern-n18", sequence: [14, 1, 5], hitcount: 1 },
+            { id: "pattern-o1", sequence: [15, 7, 11, 12], hitcount: 9 },
+            { id: "pattern-o2", sequence: [15, 6, 8, 11], hitcount: 63 },
+            { id: "pattern-p1", sequence: [16, 1, 5, 15], hitcount: 123 },
+            { id: "pattern-p2", sequence: [16, 5, 7, 15], hitcount: 19 },
+];
+
+        // ============================================
+        // PATTERN ENGINE
+        // ============================================
+        class PatternEngine {
+            constructor(patterns) {
+                this.patterns = patterns;
+            }
+
+            // Get all patterns that start with the given position
+            getPatternsStartingAt(position) {
+                return this.patterns.filter(p => p.sequence[0] === position);
+            }
+
+            // Filter patterns that match all findings so far
+            // findings: [{tile: 15, found: true}, {tile: 6, found: false}, ...]
+            filterPatterns(patterns, findings) {
+                return patterns.filter(pattern => {
+                    for (const finding of findings) {
+                        const indexInPattern = pattern.sequence.indexOf(finding.tile);
+                        const isInSequence = indexInPattern !== -1;
+
+                        // If we found Stanley at this tile, pattern MUST include it
+                        if (finding.found && !isInSequence) {
+                            return false;
+                        }
+                        // If we didn't find Stanley, pattern MUST NOT include it
+                        if (!finding.found && isInSequence) {
+                            return false;
+                        }
+                        // If found, verify it's at the correct position in sequence
+                        if (finding.found && isInSequence) {
+                            // The tile should appear at the correct index based on findings count
+                            const foundBeforeCount = findings.filter(f =>
+                                f.found && pattern.sequence.indexOf(f.tile) < indexInPattern
+                            ).length;
+                            if (indexInPattern !== foundBeforeCount) {
+                                // This is a simplified check - may need refinement
+                            }
+                        }
+                    }
+                    return true;
+                });
+            }
+
+            // Get the next possible positions from matching patterns
+            // currentIndex = how many Stanleys found so far
+            // Returns: [{tile: 1, totalHitcount: 150}, ...] sorted by hitcount desc
+            getNextPositions(patterns, currentIndex) {
+                const positionHits = {};
+                for (const pattern of patterns) {
+                    if (currentIndex < pattern.sequence.length) {
+                        const tile = pattern.sequence[currentIndex];
+                        const hitcount = pattern.hitcount || 0;
+                        positionHits[tile] = (positionHits[tile] || 0) + hitcount;
+                    }
+                }
+                return Object.entries(positionHits)
+                    .map(([tile, totalHitcount]) => ({tile: parseInt(tile), totalHitcount}))
+                    .sort((a, b) => b.totalHitcount - a.totalHitcount);
+            }
+
+            // Check if a tile is valid (in any matching pattern's next position)
+            isValidTile(tileId, nextPositions) {
+                return nextPositions.includes(tileId);
+            }
+        }
+
+        // ============================================
+        // GRID VIEW
+        // ============================================
+        class GridView {
+            constructor(containerId, onClick) {
+                this.container = document.getElementById(containerId);
+                this.onClick = onClick;
+                this.startingTile = null;
+                this.validTiles = [];  // [{tile, totalHitcount}, ...]
+                this.foundTiles = [];
+                this.emptyTiles = [];
+                this.pendingTile = null;
+                this.isDefinitive = false;
+                this.tileOpacities = {};  // {tileId: opacity}
+
+                this.render();
+            }
+
+            render() {
+                this.container.innerHTML = '';
+                for (let i = 1; i <= 16; i++) {
+                    const tile = this.createTile(i);
+                    this.container.appendChild(tile);
+                }
+            }
+
+            createTile(tileId) {
+                const tile = document.createElement('div');
+                tile.className = 'tile';
+                tile.dataset.tileId = tileId;
+                tile.textContent = tileId;
+
+                // Add state classes
+                if (this.startingTile === tileId) {
+                    tile.classList.add('starting');
+                }
+                const validEntry = this.validTiles.find(v => v.tile === tileId);
+                if (validEntry) {
+                    tile.classList.add('valid');
+                    // Apply opacity based on ranking (stored in tileOpacities)
+                    if (this.tileOpacities[tileId] !== undefined) {
+                        tile.style.setProperty('--tile-opacity', this.tileOpacities[tileId]);
+                    }
+                }
+                if (this.foundTiles.includes(tileId)) {
+                    tile.classList.add('found');
+                }
+                if (this.emptyTiles.includes(tileId)) {
+                    tile.classList.add('empty');
+                }
+
+                // Disable clicked tiles
+                if (this.foundTiles.includes(tileId) || this.emptyTiles.includes(tileId)) {
+                    tile.classList.add('disabled');
+                }
+
+                tile.addEventListener('click', () => this.handleClick(tileId));
+                return tile;
+            }
+
+            handleClick(tileId) {
+                // Don't allow clicking already processed tiles
+                if (this.foundTiles.includes(tileId) || this.emptyTiles.includes(tileId)) {
+                    return;
+                }
+                // Check if tile is valid
+                const isValid = this.validTiles.some(v => v.tile === tileId);
+                // First click (no starting tile) - allow any tile
+                if (!this.startingTile) {
+                    this.onClick(tileId);
+                // In definitive mode, just mark as found without modal
+                } else if (this.isDefinitive && isValid) {
+                    this.onClick(tileId, true);  // auto-confirm as found
+                } else if (isValid) {
+                    this.onClick(tileId);
+                }
+            }
+
+            setStartingTile(tileId) {
+                this.startingTile = tileId;
+                this.render();
+            }
+
+            setValidTiles(tilesWithRanking, isDefinitive = false) {
+                this.validTiles = tilesWithRanking;
+                this.isDefinitive = isDefinitive;
+
+                // Calculate opacities based on hitcount ranking
+                // Best = 1.0, worst = 0.4, linear interpolation
+                this.tileOpacities = {};
+                if (tilesWithRanking.length > 0) {
+                    const maxHit = Math.max(...tilesWithRanking.map(t => t.totalHitcount));
+                    const minHit = Math.min(...tilesWithRanking.map(t => t.totalHitcount));
+                    const range = maxHit - minHit;
+
+                    for (const entry of tilesWithRanking) {
+                        if (range === 0) {
+                            // All same hitcount, full opacity
+                            this.tileOpacities[entry.tile] = 1.0;
+                        } else {
+                            // Scale from 0.4 (min) to 1.0 (max)
+                            const normalized = (entry.totalHitcount - minHit) / range;
+                            this.tileOpacities[entry.tile] = 0.4 + (normalized * 0.6);
+                        }
+                    }
+                }
+                this.render();
+            }
+
+            addFound(tileId) {
+                this.foundTiles.push(tileId);
+                this.validTiles = this.validTiles.filter(v => v.tile !== tileId);
+                delete this.tileOpacities[tileId];
+                this.render();
+            }
+
+            addEmpty(tileId) {
+                this.emptyTiles.push(tileId);
+                this.validTiles = this.validTiles.filter(v => v.tile !== tileId);
+                delete this.tileOpacities[tileId];
+                this.render();
+            }
+
+            reset() {
+                this.startingTile = null;
+                this.validTiles = [];
+                this.foundTiles = [];
+                this.emptyTiles = [];
+                this.pendingTile = null;
+                this.isDefinitive = false;
+                this.tileOpacities = {};
+                this.render();
+            }
+        }
+
+        // ============================================
+        // MAIN APP
+        // ============================================
+        class StanleyFinder {
+            constructor() {
+                this.patternEngine = new PatternEngine(PATTERNS);
+                this.gridView = new GridView('grid-container', (tileId) => this.handleTileClick(tileId));
+                this.findings = [];
+                this.matchingPatterns = [];
+                this.pendingTile = null;
+            }
+
+            handleTileClick(tileId, autoConfirm = false) {
+                // First click = set starting Stanley
+                if (!this.gridView.startingTile) {
+                    this.gridView.setStartingTile(tileId);
+                    this.findings = [{ tile: tileId, found: true }];
+                    this.updatePossibilities();
+                    return;
+                }
+
+                // Subsequent clicks on valid tiles
+                if (this.gridView.validTiles.some(v => v.tile === tileId)) {
+                    if (autoConfirm) {
+                        // Definitive mode: auto-confirm as found
+                        this.findings.push({ tile: tileId, found: true });
+                        this.gridView.addFound(tileId);
+                        this.updatePossibilities();
+                    } else {
+                        // Show modal for confirmation
+                        this.pendingTile = tileId;
+                        this.showModal();
+                    }
+                }
+            }
+
+            updatePossibilities() {
+                // Get patterns starting at our first tile
+                let patterns = this.patternEngine.getPatternsStartingAt(this.findings[0].tile);
+
+                // Filter by findings
+                patterns = this.patternEngine.filterPatterns(patterns, this.findings);
+                this.matchingPatterns = patterns;
+
+                // Check if we have a single definitive pattern
+                const isDefinitive = patterns.length === 1;
+
+                let validTilesWithRanking;
+                if (isDefinitive) {
+                    // Show ALL remaining positions from the single pattern
+                    const pattern = patterns[0].sequence;
+                    const checkedTiles = new Set(this.findings.map(f => f.tile));
+                    const remaining = pattern.filter(t => !checkedTiles.has(t));
+                    // All have same "rank" in definitive mode
+                    validTilesWithRanking = remaining.map(tile => ({tile, totalHitcount: 1}));
+                } else {
+                    // Show only next position with hitcount ranking
+                    const foundCount = this.findings.filter(f => f.found).length;
+                    validTilesWithRanking = this.patternEngine.getNextPositions(patterns, foundCount);
+                }
+
+                // Update grid with ranking info
+                this.gridView.setValidTiles(validTilesWithRanking, isDefinitive);
+
+                // Update status
+                const validTiles = validTilesWithRanking.map(v => v.tile);
+                this.updateStatus(validTiles, isDefinitive);
+            }
+
+            updateStatus(nextPositions, isDefinitive) {
+                const foundCount = this.findings.filter(f => f.found).length;
+                document.getElementById('found-count').textContent = foundCount;
+                document.getElementById('pattern-count').textContent = this.matchingPatterns.length;
+
+                if (isDefinitive) {
+                    document.getElementById('possible-count').textContent =
+                        `All: ${nextPositions.join(', ')}`;
+                } else {
+                    document.getElementById('possible-count').textContent =
+                        nextPositions.length > 0 ? nextPositions.join(', ') : 'None';
+                }
+            }
+
+            showModal() {
+                document.getElementById('modal').classList.add('active');
+            }
+
+            hideModal() {
+                document.getElementById('modal').classList.remove('active');
+                this.pendingTile = null;
+            }
+
+            confirmFinding(found) {
+                if (!this.pendingTile) return;
+
+                this.findings.push({ tile: this.pendingTile, found });
+
+                if (found) {
+                    this.gridView.addFound(this.pendingTile);
+                } else {
+                    this.gridView.addEmpty(this.pendingTile);
+                }
+
+                this.hideModal();
+                this.updatePossibilities();
+            }
+
+            reset() {
+                this.gridView.reset();
+                this.findings = [];
+                this.matchingPatterns = [];
+                this.pendingTile = null;
+                document.getElementById('found-count').textContent = '0';
+                document.getElementById('pattern-count').textContent = '-';
+                document.getElementById('possible-count').textContent = '-';
+            }
+        }
+
+        // Initialize app
+        const app = new StanleyFinder();
+    </script>
+</body>
+</html>
